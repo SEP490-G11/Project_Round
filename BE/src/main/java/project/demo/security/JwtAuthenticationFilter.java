@@ -19,12 +19,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserRepository userRepository;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-            throws ServletException, java.io.IOException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.equals("/swagger-ui.html")
+                || path.equals("/health")
+                || path.startsWith("/auth/");
+    }
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain chain
+    ) throws ServletException, java.io.IOException {
 
         String auth = request.getHeader("Authorization");
-        if (auth != null && auth.startsWith("Bearer ")) {
+
+        if (auth != null && auth.startsWith("Bearer ")
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
+
             String token = auth.substring(7);
+
             try {
                 Claims claims = jwtProvider.parse(token).getPayload();
                 Long userId = Long.valueOf(claims.getSubject());
@@ -36,13 +53,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     var authentication = new UsernamePasswordAuthenticationToken(
                             principal, null, principal.getAuthorities()
                     );
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 });
-            } catch (Exception ignored) {
-                // invalid token -> ignore, request remains unauthenticated
+
+            } catch (Exception ex) {
+                // log.debug("Invalid JWT token: {}", ex.getMessage());
             }
         }
+
         chain.doFilter(request, response);
     }
 }
