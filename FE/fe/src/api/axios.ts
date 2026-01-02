@@ -2,7 +2,7 @@ import axios from "axios";
 
 const axiosClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: true, // 🔥 bắt buộc để gửi refresh cookie
+  withCredentials: true,
 });
 
 axiosClient.interceptors.request.use((config) => {
