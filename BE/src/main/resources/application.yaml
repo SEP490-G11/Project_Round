@@ -3,9 +3,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1:3307/task_management?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=utf8&useUnicode=true
-    username: book
-    password: Book@123456
+    url: jdbc:mysql://localhost:3306/project_round
+    username: app
+    password: app123
 
   jpa:
     hibernate:
@@ -19,7 +19,7 @@ spring:
     host: smtp.gmail.com
     port: 587
     username: trungdev234@gmail.com
-    password: "ehfd fjkm jbom aktq"  # nên dùng App Password của Gmail
+    password: "ehfd fjkm jbom aktq"
     properties:
       mail:
         smtp:
