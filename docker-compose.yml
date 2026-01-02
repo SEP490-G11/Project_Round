@@ -1,0 +1,67 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: project_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: project_round
+      MYSQL_USER: app
+      MYSQL_PASSWORD: app123
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-net
+
+  backend:
+    build:
+      context: ./BE
+      dockerfile: Dockerfile
+    container_name: project_backend
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+
+      DB_URL: jdbc:mysql://mysql:3306/project_round?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      DB_USERNAME: app
+      DB_PASSWORD: app123
+
+      JWT_SECRET: Zk7nQm9vR2pX6aH1tL8cY4uE0sW3dB5fJ9kP2rT7yN1xV6gH8mC0qL4uS5iA3eD
+      MAIL_USERNAME: trungdev234@gmail.com
+      MAIL_PASSWORD: ehfd_fjkm_jbom_aktq
+      REFRESH_DAYS: 7
+    ports:
+      - "8080:8080"
+    networks:
+      - app-net
+
+  frontend:
+    build:
+      context: ./FE/fe
+      dockerfile: Dockerfile
+    container_name: project_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  mysql_data:
