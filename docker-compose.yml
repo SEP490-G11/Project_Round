@@ -1,8 +1,10 @@
+version: "3.9"
+
 services:
   mysql:
     image: mysql:8.0
     container_name: project_mysql
-    restart: always
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: project_round
@@ -14,7 +16,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uapp -papp123"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,7 +28,7 @@ services:
       context: ./BE
       dockerfile: Dockerfile
     container_name: project_backend
-    restart: always
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
@@ -51,7 +53,7 @@ services:
       context: ./FE/fe
       dockerfile: Dockerfile
     container_name: project_frontend
-    restart: always
+    restart: unless-stopped
     depends_on:
       - backend
     ports:
@@ -65,3 +67,4 @@ networks:
 
 volumes:
   mysql_data:
+    name: projectround_mysql_data

@@ -70,6 +70,10 @@ export default function Login() {
           <Button type="link" onClick={() => navigate("/register")}>
             Register new account
           </Button>
+          <Button type="link" onClick={() => navigate("/forgot-password")}>
+            Forgot password?
+          </Button>
+
 
         </Form>
       </Card>

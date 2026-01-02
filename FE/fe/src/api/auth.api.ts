@@ -1,11 +1,14 @@
-import axios from "./axios";
+// src/api/auth.api.ts
+import publicAxios from "./publicAxios";
+import axiosClient from "./axios";
 
 export const AuthApi = {
   // ========= LOGIN / LOGOUT =========
   login: (data: { email: string; password: string }) =>
-    axios.post("/auth/login", data),
+    publicAxios.post("/auth/login", data),
 
-  logout: () => axios.post("/auth/logout"),
+  logout: () =>
+    axiosClient.post("/auth/logout"),
 
   // ========= REGISTER (OTP) =========
   registerRequestOtp: (data: {
@@ -13,28 +16,29 @@ export const AuthApi = {
     password: string;
     fullName: string;
   }) =>
-    axios.post("/auth/register/request-otp", data),
+    publicAxios.post("/auth/register/request-otp", data),
 
   registerVerifyOtp: (otp: string) =>
-    axios.post("/auth/register/verify-otp", { otp }),
+    publicAxios.post("/auth/register/verify-otp", { otp }),
 
   // ========= FORGOT PASSWORD =========
   forgotRequestOtp: (email: string) =>
-    axios.post("/auth/forgot/request-otp", { email }),
+    publicAxios.post("/auth/forgot/request-otp", { email }),
 
   forgotVerifyOtp: (otp: string) =>
-    axios.post("/auth/forgot/verify-otp", { otp }),
+    publicAxios.post("/auth/forgot/verify-otp", { otp }),
 
   forgotResetPassword: (data: {
     newPassword: string;
     confirmNewPassword: string;
   }) =>
-    axios.post("/auth/forgot/reset-password", data),
+    publicAxios.post("/auth/forgot/reset-password", data),
 
+  // ========= CHANGE PASSWORD (PROTECTED) =========
   changePassword: (data: {
     currentPassword: string;
     newPassword: string;
     confirmNewPassword: string;
   }) =>
-    axios.patch("/auth/change-password", data),
+    axiosClient.patch("/auth/change-password", data),
 };

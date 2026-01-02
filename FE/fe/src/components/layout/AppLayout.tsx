@@ -34,9 +34,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         <div style={{ display: "flex", gap: 12 }}>
           <span>{user?.email}</span>
+          <Button type="link" onClick={() => navigate("/change-password")}>
+            Change Password
+          </Button>
           <Button danger onClick={handleLogout}>
             Logout
           </Button>
+          
+
         </div>
       </Header>
 
