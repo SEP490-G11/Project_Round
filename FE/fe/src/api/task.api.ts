@@ -1,44 +1,122 @@
-import axios from "./axios";
-import type { TaskStatus } from "../types/task";
+// src/api/task.api.ts
+import axiosClient from "./axios";
+import type { Page } from "../types/page";
+import type {
+  Task,
+  TaskStatus,
+  TaskPriority,
+  TaskDetailResponse,
+} from "../types/task";
+
+/* =====================
+   REQUEST TYPES
+===================== */
+
+export interface TaskListParams {
+  page: number;
+  size: number;
+  q?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  assigneeId?: number;
+  sort?: string;
+}
+
+export interface CreateTaskRequest {
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  dueDate?: string; // yyyy-MM-dd
+  tags?: string[];
+  assigneeId?: number;
+}
+
+export interface PatchTaskRequest {
+  title?: string;
+  description?: string;
+  priority?: TaskPriority;
+  dueDate?: string;
+  tags?: string[];
+}
+
+/* =====================
+   API
+===================== */
 
 export const TaskApi = {
-  list: (params: any) =>
-    axios.get("/api/v1/tasks", { params }),
+  // ===== LIST =====
+  list: (params: TaskListParams) =>
+    axiosClient.get<Page<Task>>(
+      "/api/v1/tasks",
+      { params }
+    ),
 
+  // ===== DETAIL =====
   detail: (taskId: number) =>
-    axios.get(`/api/v1/tasks/${taskId}`),
+  axiosClient.get<TaskDetailResponse>(
+    `/api/v1/tasks/${taskId}`
+  ),
 
-  create: (data: any) =>
-    axios.post("/api/v1/tasks", data),
+  // ===== CREATE (ADMIN) =====
+  create: (data: CreateTaskRequest) =>
+    axiosClient.post<Task>(
+      "/api/v1/tasks",
+      data
+    ),
 
-  patch: (taskId: number, data: any) =>
-    axios.patch(`/api/v1/tasks/${taskId}`, data),
+  // ===== PATCH (ADMIN) =====
+  patch: (taskId: number, data: PatchTaskRequest) =>
+    axiosClient.patch<Task>(
+      `/api/v1/tasks/${taskId}`,
+      data
+    ),
 
+  // ===== ASSIGN (ADMIN) =====
   assign: (taskId: number, assigneeId: number) =>
-    axios.patch(`/api/v1/tasks/${taskId}/assignee`, { assigneeId }),
+    axiosClient.patch<Task>(
+      `/api/v1/tasks/${taskId}/assignee`,
+      { assigneeId }
+    ),
 
+  // ===== UPDATE STATUS =====
   updateStatus: (taskId: number, status: TaskStatus) =>
-    axios.patch(`/api/v1/tasks/${taskId}/status`, { status }),
+    axiosClient.patch<Task>(
+      `/api/v1/tasks/${taskId}/status`,
+      { status }
+    ),
 
+  // ===== DELETE (ADMIN) =====
   delete: (taskId: number) =>
-    axios.delete(`/api/v1/tasks/${taskId}`),
+    axiosClient.delete<void>(
+      `/api/v1/tasks/${taskId}`
+    ),
 
+  // ===== SUBTASK =====
   createSubTask: (taskId: number, title: string) =>
-    axios.post(`/api/v1/tasks/${taskId}/subtasks`, { title }),
+    axiosClient.post(
+      `/api/v1/tasks/${taskId}/subtasks`,
+      { title }
+    ),
 
   patchSubTask: (
     taskId: number,
     subTaskId: number,
     data: { title?: string; done?: boolean }
   ) =>
-    axios.patch(
+    axiosClient.patch(
       `/api/v1/tasks/${taskId}/subtasks/${subTaskId}`,
       data
     ),
 
   deleteSubTask: (taskId: number, subTaskId: number) =>
-    axios.delete(`/api/v1/tasks/${taskId}/subtasks/${subTaskId}`),
+    axiosClient.delete(
+      `/api/v1/tasks/${taskId}/subtasks/${subTaskId}`
+    ),
 
+  // ===== COMMENT =====
   addComment: (taskId: number, content: string) =>
-    axios.post(`/api/v1/tasks/${taskId}/comments`, { content }),
+    axiosClient.post(
+      `/api/v1/tasks/${taskId}/comments`,
+      { content }
+    ),
 };

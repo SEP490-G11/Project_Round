@@ -9,12 +9,14 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import TaskList from "../pages/tasks/TaskList";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import ChangePassword from "../pages/profile/ChangePassword";
+import TaskDetail from "../pages/tasks/TaskDetail";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* PUBLIC */}
+        <Route path="/tasks/:id" element={<TaskDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
