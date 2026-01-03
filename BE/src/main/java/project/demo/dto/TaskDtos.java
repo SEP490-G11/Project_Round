@@ -55,7 +55,8 @@ public class TaskDtos {
             UserBrief assignee,
             boolean active,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            String description
     ) {}
 
     public record SubTaskResponse(Long id, String title, boolean done, boolean active, Instant createdAt) {}

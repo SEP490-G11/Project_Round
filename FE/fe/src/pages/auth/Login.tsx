@@ -17,6 +17,7 @@ export default function Login() {
 
       // lưu access token
       localStorage.setItem("accessToken", res.data.accessToken);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
 
       message.success("Login success");
       navigate("/", { replace: true });

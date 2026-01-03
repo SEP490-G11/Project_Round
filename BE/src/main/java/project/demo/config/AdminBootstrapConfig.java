@@ -17,10 +17,10 @@ public class AdminBootstrapConfig {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.bootstrap-admin.email:admin@local.test}")
+    @Value("${app.bootstrap-admin.email:zzakonlovez@gmail.com}")
     private String adminEmail;
 
-    @Value("${app.bootstrap-admin.password:Admin@123456}")
+    @Value("${app.bootstrap-admin.password:12345678}")
     private String adminPassword;
 
     @Value("${app.bootstrap-admin.full-name:System Admin}")

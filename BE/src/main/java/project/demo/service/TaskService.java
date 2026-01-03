@@ -249,7 +249,7 @@ public class TaskService {
             st.setTitle(req.title());
         }
 
-        // ✅ FIX: done update ổn định
+        // FIX: done update ổn định
         if (req.done() != null && !Objects.equals(req.done(), st.isDone())) {
             log(task, actor, TaskLogAction.SUBTASK_UPDATED, "subtask.done", String.valueOf(st.isDone()), String.valueOf(req.done()));
             st.setDone(req.done());
@@ -371,7 +371,8 @@ public class TaskService {
                 assignee,
                 t.isActive(),
                 t.getCreatedAt(),
-                t.getUpdatedAt()
+                t.getUpdatedAt(),
+                t.getDescription()
         );
     }
 
