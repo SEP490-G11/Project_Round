@@ -9,10 +9,11 @@ import {
   Input,
   Button,
   message,
+  Select,
 } from "antd";
 
 import { TaskApi } from "../../api/task.api";
-import type { Task } from "../../types/task";
+import type { Task, TaskStatus } from "../../types/task";
 
 interface TaskDetailResponse {
   task: Task;
@@ -21,11 +22,18 @@ interface TaskDetailResponse {
   logs: any[];
 }
 
+const { Option } = Select;
+
 export default function TaskDetail() {
   const { id } = useParams();
   const [data, setData] = useState<TaskDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [comment, setComment] = useState("");
+
+  // ===== AUTH STORAGE =====
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isAdmin = user?.role === "ADMIN";
+  const isAssignee = data?.task.assignee?.id === user?.id;
 
   const fetchDetail = async () => {
     try {
@@ -45,6 +53,18 @@ export default function TaskDetail() {
 
   const { task, subtasks, comments, logs } = data;
 
+  // ===== UPDATE STATUS =====
+  const updateStatus = async (status: TaskStatus) => {
+    try {
+      await TaskApi.updateStatus(task.id, status);
+      message.success("Status updated");
+      fetchDetail();
+    } catch {
+      message.error("Update status failed");
+    }
+  };
+
+  // ===== ADD COMMENT =====
   const addComment = async () => {
     if (!comment.trim()) return;
     try {
@@ -58,11 +78,26 @@ export default function TaskDetail() {
 
   return (
     <Space direction="vertical" style={{ width: "100%" }} size="large">
-      {/* TASK INFO */}
+      {/* ================= TASK INFO ================= */}
       <Card title={task.title} loading={loading}>
         <Space wrap>
           <Tag>{task.priority}</Tag>
-          <Tag color="orange">{task.status}</Tag>
+
+          {/* STATUS – ADMIN & ASSIGNEE */}
+          {(isAdmin || isAssignee) ? (
+            <Select
+              value={task.status}
+              style={{ width: 160 }}
+              onChange={updateStatus}
+            >
+              <Option value="TODO">TODO</Option>
+              <Option value="IN_PROGRESS">IN_PROGRESS</Option>
+              <Option value="DONE">DONE</Option>
+            </Select>
+          ) : (
+            <Tag color="orange">{task.status}</Tag>
+          )}
+
           {task.assignee && (
             <Tag color="blue">{task.assignee.fullName}</Tag>
           )}
@@ -74,10 +109,11 @@ export default function TaskDetail() {
         <p>{task.description || "-"}</p>
       </Card>
 
-      {/* SUBTASKS */}
+      {/* ================= SUBTASKS ================= */}
       <Card title="Subtasks">
         <List
           dataSource={subtasks}
+          locale={{ emptyText: "No subtasks" }}
           renderItem={(s: any) => (
             <List.Item>
               <Space>
@@ -91,10 +127,11 @@ export default function TaskDetail() {
         />
       </Card>
 
-      {/* COMMENTS */}
+      {/* ================= COMMENTS ================= */}
       <Card title="Comments">
         <List
           dataSource={comments}
+          locale={{ emptyText: "No comments" }}
           renderItem={(c: any) => (
             <List.Item>
               <b>{c.author.fullName}:</b> {c.content}
@@ -102,7 +139,7 @@ export default function TaskDetail() {
           )}
         />
 
-        <Space style={{ width: "100%" }}>
+        <Space style={{ width: "100%", marginTop: 8 }}>
           <Input
             placeholder="Add comment..."
             value={comment}
@@ -114,11 +151,12 @@ export default function TaskDetail() {
         </Space>
       </Card>
 
-      {/* LOGS */}
+      {/* ================= ACTIVITY LOG ================= */}
       <Card title="Activity Log">
         <List
           size="small"
           dataSource={logs}
+          locale={{ emptyText: "No activity" }}
           renderItem={(l: any) => (
             <List.Item>
               <span>
