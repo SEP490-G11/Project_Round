@@ -22,10 +22,17 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationSocketService socketService; // 🔔 NEW
 
     @Override
     @Transactional
-    public void createNotification(Long recipientId, Long actorId, NotificationType type, String message, Long taskId) {
+    public void createNotification(
+            Long recipientId,
+            Long actorId,
+            NotificationType type,
+            String message,
+            Long taskId
+    ) {
         User recipient = userRepository.findById(recipientId)
                 .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
 
@@ -45,12 +52,23 @@ public class NotificationServiceImpl implements NotificationService {
                 .build();
 
         notificationRepository.save(n);
+
+        // ===== REALTIME PUSH =====
+        socketService.sendToUser(
+                recipient.getId(),
+                NotificationDtos.toRealtime(n)
+        );
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<NotificationDtos.NotificationResponse> listMyNotifications(
-            Long meId, Boolean unreadOnly, NotificationType type, Instant from, Instant to, Pageable pageable
+            Long meId,
+            Boolean unreadOnly,
+            NotificationType type,
+            Instant from,
+            Instant to,
+            Pageable pageable
     ) {
         Specification<Notification> spec = NotificationSpecifications.activeOnly()
                 .and(NotificationSpecifications.recipientId(meId))
@@ -59,7 +77,9 @@ public class NotificationServiceImpl implements NotificationService {
                 .and(NotificationSpecifications.createdFrom(from))
                 .and(NotificationSpecifications.createdTo(to));
 
-        return notificationRepository.findAll(spec, pageable).map(NotificationDtos::fromEntity);
+        return notificationRepository
+                .findAll(spec, pageable)
+                .map(NotificationDtos::fromEntity);
     }
 
     @Override
@@ -67,7 +87,11 @@ public class NotificationServiceImpl implements NotificationService {
     public void markRead(Long meId, Long notificationId) {
         Notification n = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("NOTIFICATION_NOT_FOUND"));
-        if (!n.isActive() || !n.getRecipient().getId().equals(meId)) throw new RuntimeException("NOTIFICATION_NOT_FOUND");
+
+        if (!n.isActive() || !n.getRecipient().getId().equals(meId)) {
+            throw new RuntimeException("NOTIFICATION_NOT_FOUND");
+        }
+
         if (n.getReadAt() == null) {
             n.setReadAt(Instant.now());
             notificationRepository.save(n);
@@ -77,9 +101,14 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void markAllRead(Long meId) {
-        var list = notificationRepository.findAllByRecipientIdAndActiveTrueAndReadAtIsNull(meId);
+        var list = notificationRepository
+                .findAllByRecipientIdAndActiveTrueAndReadAtIsNull(meId);
+
         Instant now = Instant.now();
-        for (var n : list) n.setReadAt(now);
+        for (var n : list) {
+            n.setReadAt(now);
+        }
+
         notificationRepository.saveAll(list);
     }
 }

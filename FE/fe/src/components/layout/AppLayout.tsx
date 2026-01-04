@@ -1,19 +1,18 @@
-import { Layout, Button } from "antd";
-import { useNavigate } from "react-router-dom";
+import { Layout, Button, Space } from "antd";
+import { useNavigate, Outlet } from "react-router-dom";
 import { AuthApi } from "../../api/auth.api";
 import { getCurrentUser } from "../../utils/auth";
+import NotificationBell from "../NotificationBell";
 
 const { Header, Content } = Layout;
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout() {
   const navigate = useNavigate();
   const user = getCurrentUser();
 
   const handleLogout = async () => {
     try {
       await AuthApi.logout();
-    } catch {
-      // ignore lỗi logout
     } finally {
       localStorage.clear();
       navigate("/login");
@@ -24,29 +23,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <Layout style={{ minHeight: "100vh" }}>
       <Header
         style={{
+          position: "relative", // 🔑 FIX LAYER
+          zIndex: 1000,
+          background: "#0b1d33", // modern navy
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          color: "#fff",
+          padding: "0 24px",
         }}
       >
-        <div>Task Management</div>
+        <div style={{ color: "#fff", fontWeight: 600 }}>
+          Task Management
+        </div>
 
-        <div style={{ display: "flex", gap: 12 }}>
-          <span>{user?.email}</span>
+        <Space size="middle">
+          <NotificationBell />
+          <span style={{ color: "#fff" }}>{user?.email}</span>
           <Button type="link" onClick={() => navigate("/change-password")}>
             Change Password
           </Button>
           <Button danger onClick={handleLogout}>
             Logout
           </Button>
-          
-
-        </div>
+        </Space>
       </Header>
 
       <Content style={{ padding: 24 }}>
-        {children}
+        <Outlet />
       </Content>
     </Layout>
   );

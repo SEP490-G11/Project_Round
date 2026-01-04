@@ -8,6 +8,7 @@ import {
   Button,
   Popconfirm,
   message,
+  Card,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
@@ -44,7 +45,7 @@ export default function TaskList() {
   const [openEdit, setOpenEdit] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  // ===== AUTH STORAGE =====
+  // ===== AUTH =====
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isAdmin = user?.role === "ADMIN";
 
@@ -69,7 +70,7 @@ export default function TaskList() {
     fetchData();
   }, [page, size, status, priority, keyword]);
 
-  // ===== DELETE TASK (ADMIN) =====
+  // ===== DELETE TASK =====
   const handleDelete = async (taskId: number) => {
     try {
       await TaskApi.delete(taskId);
@@ -121,8 +122,6 @@ export default function TaskList() {
       dataIndex: ["assignee", "fullName"],
       render: (v) => v || "-",
     },
-
-    // ===== ACTIONS (ADMIN ONLY) =====
     ...(isAdmin
       ? [
           {
@@ -159,12 +158,27 @@ export default function TaskList() {
   ];
 
   return (
-    <>
-      {/* ================= FILTER BAR ================= */}
+    <Card
+      title="Dashboard"
+      extra={
+        <Space>
+          <Button onClick={handleExport}>
+            Export Excel
+          </Button>
+          {isAdmin && (
+            <Button type="primary" onClick={() => setOpenCreate(true)}>
+              Create Task
+            </Button>
+          )}
+        </Space>
+      }
+    >
+      {/* ===== FILTER BAR ===== */}
       <Space style={{ marginBottom: 16 }}>
         <Input
           placeholder="Search task..."
           allowClear
+          style={{ width: 220 }}
           onChange={(e) => setKeyword(e.target.value)}
         />
 
@@ -189,29 +203,15 @@ export default function TaskList() {
           <Option value="MEDIUM">MEDIUM</Option>
           <Option value="HIGH">HIGH</Option>
         </Select>
-
-        {/* EXPORT – ALL USERS */}
-        <Button onClick={handleExport}>
-          Export Excel
-        </Button>
-
-        {/* CREATE TASK – ADMIN ONLY */}
-        {isAdmin && (
-          <Button
-            type="primary"
-            onClick={() => setOpenCreate(true)}
-          >
-            Create Task
-          </Button>
-        )}
       </Space>
 
-      {/* ================= TABLE ================= */}
+      {/* ===== TABLE ===== */}
       <Table
         rowKey="id"
         loading={loading}
         columns={columns}
         dataSource={data}
+        scroll={{ x: "max-content" }}
         pagination={{
           current: page + 1,
           pageSize: size,
@@ -222,14 +222,14 @@ export default function TaskList() {
         }}
       />
 
-      {/* ================= CREATE MODAL ================= */}
+      {/* ===== CREATE MODAL ===== */}
       <CreateTaskModal
         open={openCreate}
         onClose={() => setOpenCreate(false)}
         onSuccess={fetchData}
       />
 
-      {/* ================= EDIT MODAL ================= */}
+      {/* ===== EDIT MODAL ===== */}
       {selectedTask && (
         <EditTaskModal
           open={openEdit}
@@ -241,6 +241,6 @@ export default function TaskList() {
           onSuccess={fetchData}
         />
       )}
-    </>
+    </Card>
   );
 }

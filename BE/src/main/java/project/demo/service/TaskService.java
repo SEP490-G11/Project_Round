@@ -26,42 +26,39 @@ public class TaskService {
     private final TaskLogRepository taskLogRepository;
     private final NotificationService notificationService;
 
-    // ---------- Task CRUD ----------
+    // ================= TASK CRUD =================
 
     @Transactional
     public TaskDtos.TaskSummaryResponse createTask(Long actorId, TaskDtos.CreateTaskRequest req) {
         User actor = mustUser(actorId);
         mustAdmin(actor);
 
-        User assignee = null;
-        if (req.assigneeId() != null) {
-            assignee = mustUser(req.assigneeId());
-        }
+        User assignee = req.assigneeId() == null ? null : mustUser(req.assigneeId());
 
-        Task task = Task.builder()
-                .title(req.title())
-                .description(req.description())
-                .priority(req.priority())
-                .status(TaskStatus.TODO)
-                .dueDate(req.dueDate())
-                .tags(req.tags() == null ? new HashSet<>() : new HashSet<>(req.tags()))
-                .createdBy(actor)
-                .assignee(assignee)
-                .active(true)
-                .build();
+        Task task = taskRepository.save(
+                Task.builder()
+                        .title(req.title())
+                        .description(req.description())
+                        .priority(req.priority())
+                        .status(TaskStatus.TODO)
+                        .dueDate(req.dueDate())
+                        .tags(req.tags() == null ? new HashSet<>() : new HashSet<>(req.tags()))
+                        .createdBy(actor)
+                        .assignee(assignee)
+                        .active(true)
+                        .build()
+        );
 
-        task = taskRepository.save(task);
         log(task, actor, TaskLogAction.CREATED, null, null, null);
 
         if (assignee != null) {
-            notificationService.createNotification(
-                    assignee.getId(),
-                    actor.getId(),
+            notify(assignee.getId(), actor.getId(),
                     NotificationType.TASK_ASSIGNED,
                     "You were assigned to task: " + task.getTitle(),
-                    task.getId()
-            );
-            log(task, actor, TaskLogAction.ASSIGNED, "assigneeId", null, String.valueOf(assignee.getId()));
+                    task.getId());
+
+            log(task, actor, TaskLogAction.ASSIGNED,
+                    "assigneeId", null, String.valueOf(assignee.getId()));
         }
 
         return toSummary(task);
@@ -81,7 +78,6 @@ public class TaskService {
     ) {
         User actor = mustUser(actorId);
 
-        // CUSTOMER chỉ được thấy task assigned cho mình
         if (actor.getRole() != Role.ADMIN) {
             assigneeId = actor.getId();
         }
@@ -104,16 +100,12 @@ public class TaskService {
         Task task = mustActiveTask(taskId);
         assertCanAccessTask(actor, task);
 
-        List<TaskDtos.SubTaskResponse> subs = subTaskRepository.findAllByTaskIdAndActiveTrue(taskId)
-                .stream().map(this::toSub).toList();
-
-        List<TaskDtos.CommentResponse> comments = taskCommentRepository.findAllByTaskIdOrderByCreatedAtAsc(taskId)
-                .stream().map(this::toComment).toList();
-
-        List<TaskDtos.LogResponse> logs = taskLogRepository.findAllByTaskIdOrderByCreatedAtDesc(taskId)
-                .stream().map(this::toLog).toList();
-
-        return new TaskDtos.TaskDetailResponse(toSummary(task), subs, comments, logs);
+        return new TaskDtos.TaskDetailResponse(
+                toSummary(task),
+                subTaskRepository.findAllByTaskIdAndActiveTrue(taskId).stream().map(this::toSub).toList(),
+                taskCommentRepository.findAllByTaskIdOrderByCreatedAtAsc(taskId).stream().map(this::toComment).toList(),
+                taskLogRepository.findAllByTaskIdOrderByCreatedAtDesc(taskId).stream().map(this::toLog).toList()
+        );
     }
 
     @Transactional
@@ -123,30 +115,40 @@ public class TaskService {
 
         Task task = mustActiveTask(taskId);
 
-        if (req.title() != null && !req.title().isBlank() && !req.title().equals(task.getTitle())) {
-            log(task, actor, TaskLogAction.UPDATED, "title", task.getTitle(), req.title());
+        if (req.title() != null && !Objects.equals(req.title(), task.getTitle())) {
+            log(task, actor, TaskLogAction.UPDATED,
+                    "title", task.getTitle(), req.title());
             task.setTitle(req.title());
         }
+
         if (req.description() != null && !Objects.equals(req.description(), task.getDescription())) {
-            log(task, actor, TaskLogAction.UPDATED, "description", task.getDescription(), req.description());
+            log(task, actor, TaskLogAction.UPDATED,
+                    "description", task.getDescription(), req.description());
             task.setDescription(req.description());
         }
+
         if (req.priority() != null && req.priority() != task.getPriority()) {
-            log(task, actor, TaskLogAction.UPDATED, "priority", String.valueOf(task.getPriority()), String.valueOf(req.priority()));
+            log(task, actor, TaskLogAction.UPDATED,
+                    "priority", task.getPriority().name(), req.priority().name());
             task.setPriority(req.priority());
         }
+
         if (req.dueDate() != null && !Objects.equals(req.dueDate(), task.getDueDate())) {
-            log(task, actor, TaskLogAction.UPDATED, "dueDate", String.valueOf(task.getDueDate()), String.valueOf(req.dueDate()));
+            log(task, actor, TaskLogAction.UPDATED,
+                    "dueDate", String.valueOf(task.getDueDate()), String.valueOf(req.dueDate()));
             task.setDueDate(req.dueDate());
         }
+
         if (req.tags() != null) {
-            log(task, actor, TaskLogAction.UPDATED, "tags", String.valueOf(task.getTags()), String.valueOf(req.tags()));
+            log(task, actor, TaskLogAction.UPDATED, "tags",
+                    String.valueOf(task.getTags()), String.valueOf(req.tags()));
             task.setTags(new HashSet<>(req.tags()));
         }
 
-        task = taskRepository.save(task);
-        return toSummary(task);
+        return toSummary(taskRepository.save(task));
     }
+
+    // ================= ASSIGN =================
 
     @Transactional
     public TaskDtos.TaskSummaryResponse assignTask(Long actorId, Long taskId, Long assigneeId) {
@@ -160,20 +162,18 @@ public class TaskService {
         task.setAssignee(assignee);
         taskRepository.save(task);
 
-        log(task, actor, TaskLogAction.ASSIGNED, "assigneeId",
-                old == null ? null : String.valueOf(old),
-                String.valueOf(assigneeId));
+        log(task, actor, TaskLogAction.ASSIGNED,
+                "assigneeId", String.valueOf(old), String.valueOf(assigneeId));
 
-        notificationService.createNotification(
-                assignee.getId(),
-                actor.getId(),
+        notify(assignee.getId(), actor.getId(),
                 NotificationType.TASK_ASSIGNED,
                 "You were assigned to task: " + task.getTitle(),
-                task.getId()
-        );
+                task.getId());
 
         return toSummary(task);
     }
+
+    // ================= STATUS =================
 
     @Transactional
     public TaskDtos.TaskSummaryResponse updateStatus(Long actorId, Long taskId, TaskStatus status) {
@@ -181,25 +181,24 @@ public class TaskService {
         Task task = mustActiveTask(taskId);
         assertCanAccessTask(actor, task);
 
-        TaskStatus old = task.getStatus();
-        if (old != status) {
+        if (task.getStatus() != status) {
+            log(task, actor, TaskLogAction.STATUS_CHANGED,
+                    "status", task.getStatus().name(), status.name());
+
             task.setStatus(status);
             taskRepository.save(task);
 
-            log(task, actor, TaskLogAction.STATUS_CHANGED, "status", String.valueOf(old), String.valueOf(status));
-
             if (task.getAssignee() != null) {
-                notificationService.createNotification(
-                        task.getAssignee().getId(),
-                        actor.getId(),
+                notify(task.getAssignee().getId(), actor.getId(),
                         NotificationType.TASK_STATUS_CHANGED,
-                        "Task status changed: " + task.getTitle() + " -> " + status,
-                        task.getId()
-                );
+                        "Task status changed: " + task.getTitle() + " → " + status,
+                        task.getId());
             }
         }
         return toSummary(task);
     }
+
+    // ================= DELETE =================
 
     @Transactional
     public void softDeleteTask(Long actorId, Long taskId) {
@@ -207,15 +206,21 @@ public class TaskService {
         mustAdmin(actor);
 
         Task task = mustActiveTask(taskId);
-
         task.setActive(false);
         task.setDeletedAt(Instant.now());
         taskRepository.save(task);
 
         log(task, actor, TaskLogAction.DELETED, "active", "true", "false");
+
+        if (task.getAssignee() != null) {
+            notify(task.getAssignee().getId(), actor.getId(),
+                    NotificationType.TASK_DELETED,
+                    "Task deleted: " + task.getTitle(),
+                    task.getId());
+        }
     }
 
-    // ---------- Subtasks ----------
+    // ================= SUBTASK =================
 
     @Transactional
     public TaskDtos.SubTaskResponse createSubTask(Long actorId, Long taskId, TaskDtos.CreateSubTaskRequest req) {
@@ -223,40 +228,47 @@ public class TaskService {
         Task task = mustActiveTask(taskId);
         assertCanAccessTask(actor, task);
 
-        SubTask st = SubTask.builder()
-                .task(task)
-                .title(req.title())
-                .done(false)
-                .active(true)
-                .build();
-        st = subTaskRepository.save(st);
+        SubTask st = subTaskRepository.save(
+                SubTask.builder()
+                        .task(task)
+                        .title(req.title())
+                        .done(false)
+                        .active(true)
+                        .build()
+        );
 
         log(task, actor, TaskLogAction.SUBTASK_CREATED, "subtask", null, st.getTitle());
+
+        notifyAssignee(task, actorId,
+                NotificationType.SUBTASK_CREATED,
+                "New subtask added in task: " + task.getTitle());
+
         return toSub(st);
     }
 
     @Transactional
-    public TaskDtos.SubTaskResponse patchSubTask(Long actorId, Long taskId, Long subTaskId, TaskDtos.PatchSubTaskRequest req) {
+    public TaskDtos.SubTaskResponse patchSubTask(
+            Long actorId, Long taskId, Long subTaskId, TaskDtos.PatchSubTaskRequest req
+    ) {
         User actor = mustUser(actorId);
         Task task = mustActiveTask(taskId);
         assertCanAccessTask(actor, task);
 
-        SubTask st = subTaskRepository.findById(subTaskId).orElseThrow(() -> new RuntimeException("SUBTASK_NOT_FOUND"));
-        if (!Objects.equals(st.getTask().getId(), taskId) || !st.isActive()) throw new RuntimeException("SUBTASK_NOT_FOUND");
+        SubTask st = mustSubTask(taskId, subTaskId);
 
-        if (req.title() != null && !req.title().isBlank() && !req.title().equals(st.getTitle())) {
-            log(task, actor, TaskLogAction.SUBTASK_UPDATED, "subtask.title", st.getTitle(), req.title());
+        if (req.title() != null && !req.title().equals(st.getTitle())) {
+            log(task, actor, TaskLogAction.SUBTASK_UPDATED,
+                    "subtask.title", st.getTitle(), req.title());
             st.setTitle(req.title());
         }
 
-        // FIX: done update ổn định
-        if (req.done() != null && !Objects.equals(req.done(), st.isDone())) {
-            log(task, actor, TaskLogAction.SUBTASK_UPDATED, "subtask.done", String.valueOf(st.isDone()), String.valueOf(req.done()));
+        if (req.done() != null && !req.done().equals(st.isDone())) {
+            log(task, actor, TaskLogAction.SUBTASK_UPDATED,
+                    "subtask.done", String.valueOf(st.isDone()), String.valueOf(req.done()));
             st.setDone(req.done());
         }
 
-        st = subTaskRepository.save(st);
-        return toSub(st);
+        return toSub(subTaskRepository.save(st));
     }
 
     @Transactional(readOnly = true)
@@ -265,10 +277,7 @@ public class TaskService {
         Task task = mustActiveTask(taskId);
         assertCanAccessTask(actor, task);
 
-        SubTask st = subTaskRepository.findById(subTaskId).orElseThrow(() -> new RuntimeException("SUBTASK_NOT_FOUND"));
-        if (!Objects.equals(st.getTask().getId(), taskId) || !st.isActive()) throw new RuntimeException("SUBTASK_NOT_FOUND");
-
-        return toSub(st);
+        return toSub(mustSubTask(taskId, subTaskId));
     }
 
     @Transactional
@@ -277,19 +286,19 @@ public class TaskService {
         Task task = mustActiveTask(taskId);
         assertCanAccessTask(actor, task);
 
-        SubTask st = subTaskRepository.findById(subTaskId)
-                .orElseThrow(() -> new RuntimeException("SUBTASK_NOT_FOUND"));
-        if (!Objects.equals(st.getTask().getId(), taskId) || !st.isActive())
-            throw new RuntimeException("SUBTASK_NOT_FOUND");
-
+        SubTask st = mustSubTask(taskId, subTaskId);
         st.setActive(false);
         st.setDeletedAt(Instant.now());
         subTaskRepository.save(st);
 
         log(task, actor, TaskLogAction.SUBTASK_DELETED, "subtask", st.getTitle(), null);
+
+        notifyAssignee(task, actorId,
+                NotificationType.SUBTASK_DELETE,
+                "Subtask deleted in task: " + task.getTitle());
     }
 
-    // ---------- Comments ----------
+    // ================= COMMENTS =================
 
     @Transactional
     public TaskDtos.CommentResponse addComment(Long actorId, Long taskId, TaskDtos.CreateCommentRequest req) {
@@ -297,38 +306,59 @@ public class TaskService {
         Task task = mustActiveTask(taskId);
         assertCanAccessTask(actor, task);
 
-        TaskComment c = TaskComment.builder()
-                .task(task)
-                .author(actor)
-                .content(req.content())
-                .build();
-        c = taskCommentRepository.save(c);
+        TaskComment c = taskCommentRepository.save(
+                TaskComment.builder()
+                        .task(task)
+                        .author(actor)
+                        .content(req.content())
+                        .build()
+        );
 
         log(task, actor, TaskLogAction.COMMENTED, "comment", null, "(added)");
 
-        if (task.getAssignee() != null && !Objects.equals(task.getAssignee().getId(), actorId)) {
-            notificationService.createNotification(
-                    task.getAssignee().getId(),
-                    actor.getId(),
-                    NotificationType.COMMENT_ADDED,
-                    "New comment on task: " + task.getTitle(),
-                    task.getId()
-            );
-        }
+        notifyAssignee(task, actorId,
+                NotificationType.COMMENT_ADDED,
+                "New comment on task: " + task.getTitle());
+
         return toComment(c);
     }
 
-    // ---------- helpers ----------
+    // ================= HELPERS =================
 
-    private void mustAdmin(User actor) {
-        if (actor.getRole() != Role.ADMIN) throw new RuntimeException("FORBIDDEN");
+    private void notify(Long to, Long from, NotificationType type, String msg, Long taskId) {
+        notificationService.createNotification(to, from, type, msg, taskId);
     }
 
-    private void assertCanAccessTask(User actor, Task task) {
-        if (actor.getRole() == Role.ADMIN) return;
+    private void notifyAssignee(Task task, Long actorId, NotificationType type, String msg) {
+        if (task.getAssignee() != null && !Objects.equals(task.getAssignee().getId(), actorId)) {
+            notify(task.getAssignee().getId(), actorId, type, msg, task.getId());
+        }
+    }
 
-        // CUSTOMER chỉ được thao tác trên task assigned cho mình
-        if (task.getAssignee() == null || !Objects.equals(task.getAssignee().getId(), actor.getId())) {
+    private SubTask mustSubTask(Long taskId, Long subTaskId) {
+        SubTask st = subTaskRepository.findById(subTaskId)
+                .orElseThrow(() -> new RuntimeException("SUBTASK_NOT_FOUND"));
+
+        if (!st.isActive() || !Objects.equals(st.getTask().getId(), taskId)) {
+            throw new RuntimeException("SUBTASK_NOT_FOUND");
+        }
+        return st;
+    }
+
+//    private void update(Task t, User a, String f, Object oldV, Object newV, java.util.function.Consumer<Object> setter) {
+//        if (newV != null && !Objects.equals(oldV, newV)) {
+//            log(t, a, TaskLogAction.UPDATED, f, String.valueOf(oldV), String.valueOf(newV));
+//            setter.accept(newV);
+//        }
+//    }
+
+    private void mustAdmin(User u) {
+        if (u.getRole() != Role.ADMIN) throw new RuntimeException("FORBIDDEN");
+    }
+
+    private void assertCanAccessTask(User u, Task t) {
+        if (u.getRole() == Role.ADMIN) return;
+        if (t.getAssignee() == null || !Objects.equals(t.getAssignee().getId(), u.getId())) {
             throw new RuntimeException("FORBIDDEN");
         }
     }
@@ -343,24 +373,27 @@ public class TaskService {
         return t;
     }
 
-    private void log(Task task, User actor, TaskLogAction action, String fieldName, String oldVal, String newVal) {
-        TaskLog l = TaskLog.builder()
-                .task(task)
-                .actor(actor)
-                .action(action)
-                .fieldName(fieldName)
-                .oldValue(oldVal)
-                .newValue(newVal)
-                .build();
-        taskLogRepository.save(l);
+    private void log(Task t, User a, TaskLogAction act, String f, String o, String n) {
+        taskLogRepository.save(
+                TaskLog.builder()
+                        .task(t)
+                        .actor(a)
+                        .action(act)
+                        .fieldName(f)
+                        .oldValue(o)
+                        .newValue(n)
+                        .build()
+        );
     }
 
     private TaskDtos.TaskSummaryResponse toSummary(Task t) {
-        TaskDtos.UserBrief assignee = null;
-        if (t.getAssignee() != null) {
-            var a = t.getAssignee();
-            assignee = new TaskDtos.UserBrief(a.getId(), a.getEmail(), a.getFullName());
-        }
+        TaskDtos.UserBrief assignee = t.getAssignee() == null ? null :
+                new TaskDtos.UserBrief(
+                        t.getAssignee().getId(),
+                        t.getAssignee().getEmail(),
+                        t.getAssignee().getFullName()
+                );
+
         return new TaskDtos.TaskSummaryResponse(
                 t.getId(),
                 t.getTitle(),
@@ -377,7 +410,9 @@ public class TaskService {
     }
 
     private TaskDtos.SubTaskResponse toSub(SubTask s) {
-        return new TaskDtos.SubTaskResponse(s.getId(), s.getTitle(), s.isDone(), s.isActive(), s.getCreatedAt());
+        return new TaskDtos.SubTaskResponse(
+                s.getId(), s.getTitle(), s.isDone(), s.isActive(), s.getCreatedAt()
+        );
     }
 
     private TaskDtos.CommentResponse toComment(TaskComment c) {
