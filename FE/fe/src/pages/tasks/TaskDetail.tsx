@@ -10,6 +10,7 @@ import {
   Button,
   message,
   Select,
+  Popconfirm,
 } from "antd";
 
 import { TaskApi } from "../../api/task.api";
@@ -26,15 +27,20 @@ const { Option } = Select;
 
 export default function TaskDetail() {
   const { id } = useParams();
+
   const [data, setData] = useState<TaskDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
+
   const [comment, setComment] = useState("");
+  const [newSubtask, setNewSubtask] = useState("");
 
   // ===== AUTH STORAGE =====
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isAdmin = user?.role === "ADMIN";
   const isAssignee = data?.task.assignee?.id === user?.id;
+  const canEdit = isAdmin || isAssignee;
 
+  // ===== FETCH DETAIL =====
   const fetchDetail = async () => {
     try {
       setLoading(true);
@@ -76,6 +82,30 @@ export default function TaskDetail() {
     }
   };
 
+  // ===== ADD SUBTASK =====
+  const addSubtask = async () => {
+    if (!newSubtask.trim()) return;
+    try {
+      await TaskApi.createSubTask(task.id, newSubtask);
+      setNewSubtask("");
+      message.success("Subtask added");
+      fetchDetail();
+    } catch {
+      message.error("Add subtask failed");
+    }
+  };
+
+  // ===== DELETE SUBTASK =====
+  const deleteSubtask = async (subtaskId: number) => {
+    try {
+      await TaskApi.deleteSubTask(task.id, subtaskId);
+      message.success("Subtask deleted");
+      fetchDetail();
+    } catch {
+      message.error("Delete subtask failed");
+    }
+  };
+
   return (
     <Space direction="vertical" style={{ width: "100%" }} size="large">
       {/* ================= TASK INFO ================= */}
@@ -83,7 +113,6 @@ export default function TaskDetail() {
         <Space wrap>
           <Tag>{task.priority}</Tag>
 
-          {/* STATUS – ADMIN & ASSIGNEE */}
           {(isAdmin || isAssignee) ? (
             <Select
               value={task.status}
@@ -115,7 +144,25 @@ export default function TaskDetail() {
           dataSource={subtasks}
           locale={{ emptyText: "No subtasks" }}
           renderItem={(s: any) => (
-            <List.Item>
+            <List.Item
+              actions={
+                canEdit
+                  ? [
+                      <Popconfirm
+                        key="delete"
+                        title="Delete this subtask?"
+                        okText="Delete"
+                        cancelText="Cancel"
+                        onConfirm={() => deleteSubtask(s.id)}
+                      >
+                        <Button danger size="small">
+                          Delete
+                        </Button>
+                      </Popconfirm>,
+                    ]
+                  : []
+              }
+            >
               <Space>
                 <Tag color={s.done ? "green" : "default"}>
                   {s.done ? "DONE" : "TODO"}
@@ -125,6 +172,19 @@ export default function TaskDetail() {
             </List.Item>
           )}
         />
+
+        {canEdit && (
+          <Space style={{ width: "100%", marginTop: 12 }}>
+            <Input
+              placeholder="New subtask..."
+              value={newSubtask}
+              onChange={(e) => setNewSubtask(e.target.value)}
+            />
+            <Button type="primary" onClick={addSubtask}>
+              Add
+            </Button>
+          </Space>
+        )}
       </Card>
 
       {/* ================= COMMENTS ================= */}

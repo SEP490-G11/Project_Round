@@ -13,6 +13,9 @@ import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 
 import { TaskApi } from "../../api/task.api";
+import { ReportApi } from "../../api/report.api";
+import { downloadBlob } from "../../utils/download";
+
 import type {
   Task,
   TaskStatus,
@@ -45,6 +48,7 @@ export default function TaskList() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isAdmin = user?.role === "ADMIN";
 
+  // ===== FETCH TASK LIST =====
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -65,6 +69,7 @@ export default function TaskList() {
     fetchData();
   }, [page, size, status, priority, keyword]);
 
+  // ===== DELETE TASK (ADMIN) =====
   const handleDelete = async (taskId: number) => {
     try {
       await TaskApi.delete(taskId);
@@ -75,6 +80,18 @@ export default function TaskList() {
     }
   };
 
+  // ===== EXPORT TASKS =====
+  const handleExport = async () => {
+    try {
+      const res = await ReportApi.exportTasks();
+      downloadBlob(res.data, "tasks.xlsx");
+      message.success("Export success");
+    } catch {
+      message.error("Export failed");
+    }
+  };
+
+  // ===== TABLE COLUMNS =====
   const columns: ColumnsType<Task> = [
     {
       title: "Title",
@@ -143,7 +160,7 @@ export default function TaskList() {
 
   return (
     <>
-      {/* FILTER BAR */}
+      {/* ================= FILTER BAR ================= */}
       <Space style={{ marginBottom: 16 }}>
         <Input
           placeholder="Search task..."
@@ -173,6 +190,11 @@ export default function TaskList() {
           <Option value="HIGH">HIGH</Option>
         </Select>
 
+        {/* EXPORT – ALL USERS */}
+        <Button onClick={handleExport}>
+          Export Excel
+        </Button>
+
         {/* CREATE TASK – ADMIN ONLY */}
         {isAdmin && (
           <Button
@@ -184,7 +206,7 @@ export default function TaskList() {
         )}
       </Space>
 
-      {/* TABLE */}
+      {/* ================= TABLE ================= */}
       <Table
         rowKey="id"
         loading={loading}
@@ -200,14 +222,14 @@ export default function TaskList() {
         }}
       />
 
-      {/* CREATE MODAL */}
+      {/* ================= CREATE MODAL ================= */}
       <CreateTaskModal
         open={openCreate}
         onClose={() => setOpenCreate(false)}
         onSuccess={fetchData}
       />
 
-      {/* EDIT MODAL */}
+      {/* ================= EDIT MODAL ================= */}
       {selectedTask && (
         <EditTaskModal
           open={openEdit}
