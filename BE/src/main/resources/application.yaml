@@ -32,7 +32,7 @@ app:
   jwt:
     issuer: stadium-booking
     secret: ${JWT_SECRET:Zk7nQm9vR2pX6aH1tL8cY4uE0sW3dB5fJ9kP2rT7yN1xV6gH8mC0qL4uS5iA3eD}
-    access-minutes: 15
+    access-minutes: 30
 
   # ===== REFRESH TOKEN / COOKIE =====
   refresh:
