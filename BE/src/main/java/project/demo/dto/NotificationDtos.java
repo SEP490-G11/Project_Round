@@ -16,6 +16,15 @@ public class NotificationDtos {
             Instant readAt
     ) {}
 
+    public record RealtimeNotification(
+            Long id,
+            NotificationType type,
+            String content,
+            Long taskId,
+            Instant createdAt
+    ) {}
+
+
     public static NotificationResponse fromEntity(Notification n) {
         return new NotificationResponse(
                 n.getId(),
@@ -26,4 +35,14 @@ public class NotificationDtos {
                 n.getReadAt()
         );
     }
+    public static RealtimeNotification toRealtime(Notification n) {
+        return new RealtimeNotification(
+                n.getId(),
+                n.getType(),
+                n.getMessage(),
+                n.getTaskId(),
+                n.getCreatedAt()
+        );
+    }
+
 }

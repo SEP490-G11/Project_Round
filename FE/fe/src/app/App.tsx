@@ -4,11 +4,11 @@ import AppLayout from "../components/layout/AppLayout";
 
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import ChangePassword from "../pages/profile/ChangePassword";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import TaskList from "../pages/tasks/TaskList";
-import ForgotPassword from "../pages/auth/ForgotPassword";
-import ChangePassword from "../pages/profile/ChangePassword";
 import TaskDetail from "../pages/tasks/TaskDetail";
 
 export default function App() {
@@ -16,47 +16,26 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* PUBLIC */}
-        <Route path="/tasks/:id" element={<TaskDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        {/* PROTECTED + LAYOUT */}
         <Route
-          path="/change-password"
           element={
             <ProtectedRoute>
-              <AppLayout>
-                <ChangePassword />
-              </AppLayout>
+              <AppLayout />
             </ProtectedRoute>
           }
-        />
-
-
-        {/* PROTECTED */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Dashboard />
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/tasks"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <TaskList />
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/tasks" element={<TaskList />} />
+          <Route path="/tasks/:id" element={<TaskDetail />} />
+          <Route path="/change-password" element={<ChangePassword />} />
+        </Route>
 
         {/* FALLBACK */}
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
