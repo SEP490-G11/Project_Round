@@ -1,4 +1,4 @@
-version: "3.9"
+# Docker Compose v2 (version không cần khai báo)
 
 services:
   mysql:
@@ -33,16 +33,26 @@ services:
       mysql:
         condition: service_healthy
     environment:
+      # ===== SERVER =====
       SERVER_PORT: 8080
 
+      # ===== DATABASE =====
       DB_URL: jdbc:mysql://mysql:3306/project_round?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
       DB_USERNAME: app
       DB_PASSWORD: app123
 
+      # ===== JWT =====
       JWT_SECRET: Zk7nQm9vR2pX6aH1tL8cY4uE0sW3dB5fJ9kP2rT7yN1xV6gH8mC0qL4uS5iA3eD
-      MAIL_USERNAME: trungdev234@gmail.com
-      MAIL_PASSWORD: ehfd_fjkm_jbom_aktq
       REFRESH_DAYS: 7
+
+      # ===== MAIL (FIXED – SPRING BOOT READABLE) =====
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: trungdev234@gmail.com
+      SPRING_MAIL_PASSWORD: eoib gctk dhmw gmzr
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+
     ports:
       - "8080:8080"
     networks:
