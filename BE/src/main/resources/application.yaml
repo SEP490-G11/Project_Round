@@ -1,5 +1,11 @@
 server:
   port: ${SERVER_PORT:8080}
+  ssl:
+    enabled: true
+    key-store: classpath:localhost.p12
+    key-store-password: changeit
+    key-store-type: PKCS12
+    key-alias: springboot
 
 spring:
   datasource:
@@ -33,21 +39,26 @@ app:
     issuer: stadium-booking
     secret: ${JWT_SECRET:Zk7nQm9vR2pX6aH1tL8cY4uE0sW3dB5fJ9kP2rT7yN1xV6gH8mC0qL4uS5iA3eD}
     access-minutes: 30
+  push:
+    vapid:
+      public-key: BARRnwqaSb921r4qoxVEBS7Al3u3FZ5fonNDBULevuh2Q4WssKNmjix9sbPPsLHOn1Qr7j5l9q75W4QC0Xa8xcQ
+      private-key: gOcGtTzcmT7_ZSe9FfOJCFS4yD79JH10i_dB9XbN1s8
+      subject: mailto:admin@projectround.local
 
   # ===== REFRESH TOKEN / COOKIE =====
   refresh:
     days: ${REFRESH_DAYS:7}
     cookie-name: ${REFRESH_COOKIE_NAME:refresh_token}
     cookie-path: ${REFRESH_COOKIE_PATH:/auth}
-    secure: ${REFRESH_COOKIE_SECURE:false}
-    same-site: ${REFRESH_COOKIE_SAMESITE:Lax}
+    secure: true
+    same-site: None
 
-  # ===== OTP (nếu code có dùng) =====
+  # ===== OTP =====
   otp:
     minutes: ${OTP_MINUTES:10}
     resend-seconds: ${OTP_RESEND_SECONDS:30}
 
-  # ===== BOOTSTRAP ADMIN (nếu có seeding admin) =====
+  # ===== BOOTSTRAP ADMIN =====
   bootstrap:
     admin:
       email: ${BOOTSTRAP_ADMIN_EMAIL:admin@gmail.com}
