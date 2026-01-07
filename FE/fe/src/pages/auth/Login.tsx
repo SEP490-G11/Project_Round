@@ -26,7 +26,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  // 🔔 SUBSCRIBE PUSH THẬT
+  //SUBSCRIBE PUSH THẬT
   const subscribePush = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
