@@ -11,7 +11,7 @@ export const connectNotificationSocket = (
   if (!token) return;
 
   stompClient = new Client({
-    webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+    webSocketFactory: () => new SockJS("https://localhost:8080/ws"),
     reconnectDelay: 5000,
 
     connectHeaders: {

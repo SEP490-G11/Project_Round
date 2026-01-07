@@ -1,6 +1,7 @@
 package project.demo.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -15,14 +16,19 @@ import project.demo.repository.UserRepository;
 import project.demo.spec.NotificationSpecifications;
 
 import java.time.Instant;
+import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
-    private final NotificationSocketService socketService; // 🔔 NEW
+    private final NotificationSocketService socketService;
+
+    // 🔔 WEB PUSH (OPTIONAL – KHÔNG ĐƯỢC LÀM CRASH APP)
+    private final Optional<WebPushService> webPushService;
 
     @Override
     @Transactional
@@ -53,12 +59,31 @@ public class NotificationServiceImpl implements NotificationService {
 
         notificationRepository.save(n);
 
-        // ===== REALTIME PUSH =====
-        socketService.sendToUser(
-                recipient.getId(),
-                NotificationDtos.toRealtime(n)
-        );
+        // ================= REALTIME (WEB SOCKET) =================
+        try {
+            socketService.sendToUser(
+                    recipient.getId(),
+                    NotificationDtos.toRealtime(n)
+            );
+        } catch (Exception e) {
+            log.warn("WebSocket notify failed for user {}", recipient.getId(), e);
+        }
+
+        // ================= WEB PUSH (BROWSER ĐÓNG VẪN NHẬN) =================
+        webPushService.ifPresent(push -> {
+            try {
+                push.pushToUser(
+                        recipient.getId(),
+                        "Task Management",
+                        message
+                );
+            } catch (Exception e) {
+                log.warn("WebPush failed for user {}", recipient.getId(), e);
+            }
+        });
     }
+
+    // ================= QUERY =================
 
     @Override
     @Transactional(readOnly = true)
@@ -81,6 +106,8 @@ public class NotificationServiceImpl implements NotificationService {
                 .findAll(spec, pageable)
                 .map(NotificationDtos::fromEntity);
     }
+
+    // ================= MARK READ =================
 
     @Override
     @Transactional
