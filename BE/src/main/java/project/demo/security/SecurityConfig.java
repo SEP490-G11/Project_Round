@@ -29,24 +29,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // ❌ Disable CSRF (JWT + API)
+                //Disable CSRF (JWT + API)
                 .csrf(csrf -> csrf.disable())
 
-                // ✅ Enable CORS
+                //Enable CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // ❌ No session (JWT)
+                //No session (JWT)
                 .sessionManagement(sm ->
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // ✅ Authorization rules
+                //Authorization rules
                 .authorizeHttpRequests(auth -> auth
 
                         // ===== PUBLIC ENDPOINTS =====
                         .requestMatchers(
                                 "/auth/**",
-                                "/ws/**",                 // ⭐⭐⭐ BẮT BUỘC (FIX 403)
+                                "/ws/**",                 //BẮT BUỘC (FIX 403)
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
@@ -58,7 +58,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // ✅ JWT Filter
+                //JWT Filter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
