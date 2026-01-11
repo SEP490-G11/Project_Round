@@ -16,19 +16,26 @@ public class PushSubscriptionService {
     @Transactional
     public void subscribe(Long userId, PushSubscriptionDto dto) {
 
-        repository.deleteByUserId(userId);
+        PushSubscriptionEntity sub =
+                repository.findByEndpoint(dto.endpoint())
+                        .orElseGet(PushSubscriptionEntity::new);
 
-        PushSubscriptionEntity sub = new PushSubscriptionEntity();
+        //UPDATE OWNER
         sub.setUserId(userId);
         sub.setEndpoint(dto.endpoint());
         sub.setP256dh(dto.keys().p256dh());
         sub.setAuth(dto.keys().auth());
+        sub.touch();
 
         repository.save(sub);
     }
 
+    /**
+     * KHÔNG NÊN XOÁ SUBSCRIPTION KHI LOGOUT
+     */
     @Transactional
     public void unsubscribe(Long userId) {
-        repository.deleteByUserId(userId);
+        // OPTIONAL:
+        // chỉ xoá nếu user CHỦ ĐỘNG disable notification
     }
 }
