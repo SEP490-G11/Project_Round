@@ -26,7 +26,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  // 🔔 SUBSCRIBE PUSH THẬT
+  //SUBSCRIBE PUSH THẬT
   const subscribePush = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
@@ -56,7 +56,7 @@ export default function Login() {
     };
 
     await axiosClient.post("/api/v1/push/subscribe", payload);
-    console.log("✅ Push subscribed");
+    console.log("Push subscribed");
   };
 
   const onFinish = async (values: { email: string; password: string }) => {
@@ -68,7 +68,7 @@ export default function Login() {
       localStorage.setItem("accessToken", res.data.accessToken);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      // 👉 SUBSCRIBE PUSH SAU LOGIN
+      //SUBSCRIBE PUSH SAU LOGIN
       await subscribePush();
 
       message.success("Login success");

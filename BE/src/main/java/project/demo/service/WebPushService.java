@@ -33,7 +33,7 @@ public class WebPushService {
     @PostConstruct
     void init() throws Exception {
 
-        // 🔐 REGISTER BOUNCY CASTLE PROVIDER (QUAN TRỌNG)
+        // REGISTER BOUNCY CASTLE PROVIDER (QUAN TRỌNG)
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }

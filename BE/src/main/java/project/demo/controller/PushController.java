@@ -9,54 +9,31 @@ import project.demo.dto.PushSubscriptionDto;
 import project.demo.entity.PushSubscriptionEntity;
 import project.demo.repository.PushSubscriptionRepository;
 import project.demo.security.CustomUserDetails;
+import project.demo.service.PushSubscriptionService;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/push")
 public class PushController {
 
-    private final PushSubscriptionRepository repository;
+    private final PushSubscriptionService service;
 
-    private Long uid(CustomUserDetails principal) {
-        if (principal == null) {
-            throw new RuntimeException("UNAUTHORIZED");
-        }
-        return principal.getId();
-    }
-
-    /**
-     * FE gọi khi đăng nhập / load app
-     */
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/subscribe")
     public ResponseEntity<Void> subscribe(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestBody PushSubscriptionDto dto
     ) {
-        Long userId = uid(principal);
-
-        // optional: tránh duplicate
-        repository.deleteByUserId(userId);
-
-        PushSubscriptionEntity sub = new PushSubscriptionEntity();
-        sub.setUserId(userId);
-        sub.setEndpoint(dto.endpoint());
-        sub.setP256dh(dto.keys().p256dh());
-        sub.setAuth(dto.keys().auth());
-
-        repository.save(sub);
+        service.subscribe(principal.getId(), dto);
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * FE gọi khi logout
-     */
     @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/unsubscribe")
     public ResponseEntity<Void> unsubscribe(
             @AuthenticationPrincipal CustomUserDetails principal
     ) {
-        repository.deleteByUserId(uid(principal));
+        service.unsubscribe(principal.getId());
         return ResponseEntity.noContent().build();
     }
 }
