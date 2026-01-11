@@ -6,7 +6,7 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
 
-  // ⚠️ GIỮ NGUYÊN – để tránh lỗi global is not defined
+  //GIỮ NGUYÊN – để tránh lỗi global is not defined
   define: {
     global: "window",
   },

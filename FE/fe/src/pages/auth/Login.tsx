@@ -27,7 +27,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   //SUBSCRIBE PUSH THẬT
+
   const subscribePush = async () => {
+    console.log("SUBSCRIBE PUSH CALLED");
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
     const permission = await Notification.requestPermission();
@@ -69,7 +71,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       //SUBSCRIBE PUSH SAU LOGIN
-      await subscribePush();
+       await subscribePush();
 
       message.success("Login success");
       navigate("/", { replace: true });
